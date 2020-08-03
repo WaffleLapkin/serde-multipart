@@ -47,14 +47,14 @@ use serde::Serialize;
 use crate::serializers::MultipartTopLvlSerializer;
 
 pub use serializers::Error;
+use std::future::Future;
 
 /// Serializes given value into [`Form`]
 ///
 /// [`Form`]:  reqwest::multipart::Form
-pub async fn to_form<T: ?Sized + Serialize>(val: &T) -> Result<Form, Error> {
-    let fut = val.serialize(MultipartTopLvlSerializer {})?;
-    let res = fut.await?;
-    Ok(res)
+pub fn to_form<T: ?Sized + Serialize>(val: &T) -> impl Future<Output = Result<Form, Error>> {
+    let fut = val.serialize(MultipartTopLvlSerializer {});
+    async { Ok(fut?.await?) }
 }
 
 /// This object represents the contents of a file to be uploaded.
