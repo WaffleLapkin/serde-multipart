@@ -31,6 +31,10 @@
 //! ## How it works
 //!
 //! You better not know...
+//!
+//! ## WARNING
+//!
+//! This lib is developed to serialize telegram bot api requests and may not work for anything else
 #![feature(type_alias_impl_trait)] // TODO: should be possible to make nightly opt-in/out
 
 #[macro_use]
@@ -60,7 +64,7 @@ pub fn to_form<T: ?Sized + Serialize>(val: &T) -> impl Future<Output = Result<Fo
 /// This object represents the contents of a file to be uploaded.
 ///
 /// [The official docs](https://core.telegram.org/bots/api#inputfile).
-#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
 enum InputFile {
     File(PathBuf),
     Memory {
