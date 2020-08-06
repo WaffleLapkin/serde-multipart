@@ -5,7 +5,7 @@ use futures::future::Either;
 use futures::stream::FuturesUnordered;
 use futures::{Future, FutureExt, StreamExt, TryStreamExt};
 use reqwest::multipart::{Form, Part};
-use serde::ser::{Impossible, SerializeStruct, SerializeStructVariant, SerializeSeq};
+use serde::ser::{Impossible, SerializeSeq, SerializeStruct, SerializeStructVariant};
 use serde::{ser, Serialize, Serializer};
 use std::fmt::Display;
 use std::{fmt, io};
@@ -16,7 +16,7 @@ pub enum Error {
     TopLevelNotStruct,
     InputFileUnserializerError(crate::unserializers::UnserializerError),
     Io(std::io::Error),
-    Json(serde_json::Error)
+    Json(serde_json::Error),
 }
 
 impl ser::Error for Error {
@@ -33,8 +33,9 @@ impl Display for Error {
         match self {
             Self::Custom(s) => write!(f, "Custom serde error: {}", s),
             Self::TopLevelNotStruct => write!(f, "Multipart supports only structs at top level"),
-            Self::InputFileUnserializerError(inner) =>
-                write!(f, "Error while unserializing input file: {}", inner),
+            Self::InputFileUnserializerError(inner) => {
+                write!(f, "Error while unserializing input file: {}", inner)
+            }
             Self::Io(inner) => write!(f, "Io error: {}", inner),
             Self::Json(inner) => write!(f, "Json (de)serialization error: {}", inner),
         }
@@ -226,7 +227,10 @@ pub(crate) struct MultipartSerializer {
 
 impl MultipartSerializer {
     fn new() -> Self {
-        Self { parts: Vec::new(), files: vec![] }
+        Self {
+            parts: Vec::new(),
+            files: vec![],
+        }
     }
 }
 
@@ -242,7 +246,7 @@ impl SerializeStruct for MultipartSerializer {
     where
         T: Serialize,
     {
-        let (part, file) = value.serialize(PartSerializer { })?;
+        let (part, file) = value.serialize(PartSerializer {})?;
         self.parts.push((key, part));
         self.files.extend(file);
 
@@ -251,11 +255,9 @@ impl SerializeStruct for MultipartSerializer {
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         let form = self
-               .parts
-               .into_iter()
-               .fold(Form::new(), |acc, (key, value)| {
-                   acc.part(key, value)
-               });
+            .parts
+            .into_iter()
+            .fold(Form::new(), |acc, (key, value)| acc.part(key, value));
 
         if self.files.is_empty() {
             Ok(Either::Left(ready(Ok(form))))
@@ -272,7 +274,6 @@ impl SerializeStruct for MultipartSerializer {
         }
     }
 }
-
 
 struct PartSerializer {}
 
@@ -404,17 +405,15 @@ impl Serializer for PartSerializer {
                 let uuid = uuid::Uuid::new_v4().to_string();
                 let part = Part::text(format!("attach://{}", uuid));
                 Ok((part, vec![(uuid, f)]))
-            },
-            InputFile::FileId(s) | InputFile::Url(s) => {
-                Ok((Part::text(s), Vec::new()))
             }
+            InputFile::FileId(s) | InputFile::Url(s) => Ok((Part::text(s), Vec::new())),
         }
     }
 
     fn serialize_seq(self, _: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         Ok(Self::SerializeSeq {
             array_json_parts: vec![],
-            files: vec![]
+            files: vec![],
         })
     }
 
@@ -500,11 +499,9 @@ impl SerializeStructVariant for PartFromFile {
                 let uuid = uuid::Uuid::new_v4().to_string();
                 let part = Part::text(format!("attach://{}", uuid));
 
-                Ok((part, vec![((uuid, f))]))
-            },
-            InputFile::FileId(s) | InputFile::Url(s) => {
-                Ok((Part::text(s), vec![]))
+                Ok((part, vec![(uuid, f)]))
             }
+            InputFile::FileId(s) | InputFile::Url(s) => Ok((Part::text(s), vec![])),
         }
     }
 }
@@ -532,7 +529,7 @@ impl SerializeSeq for InnerPartSerializer {
                 let uuid = uuid::Uuid::new_v4().to_string();
                 value["media"] = serde_json::Value::String(format!("attach://{}", uuid));
                 self.files.push((uuid, f));
-            },
+            }
             InputFile::FileId(s) | InputFile::Url(s) => {
                 value["media"] = serde_json::Value::String(s);
             }

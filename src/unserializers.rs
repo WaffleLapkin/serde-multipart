@@ -41,11 +41,27 @@ impl ser::Error for UnserializerError {
 impl Display for UnserializerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnexpectedField { name, expected } => write!(f, "Unexpected field: `{}`, expected field(s): `{}`", name, expected.join(", ")),
+            Self::UnexpectedField { name, expected } => write!(
+                f,
+                "Unexpected field: `{}`, expected field(s): `{}`",
+                name,
+                expected.join(", ")
+            ),
             Self::Custom(s) => write!(f, "Custom serde error: {}", s),
-            Self::UnsupportedType { ty, supported } => write!(f, "Unsupported type: `{}`, supported type(s): `{}`", ty, supported),
-            Self::UnexpectedVariant { name, expected } => write!(f, "Unexpected variant: `{}`, expected variants(s): `{}`", name, expected.join(", ")),
-            Self::WrongLen { len, expected } => write!(f, "Wrong len: `{}`, expected `{}`", len, expected),
+            Self::UnsupportedType { ty, supported } => write!(
+                f,
+                "Unsupported type: `{}`, supported type(s): `{}`",
+                ty, supported
+            ),
+            Self::UnexpectedVariant { name, expected } => write!(
+                f,
+                "Unexpected variant: `{}`, expected variants(s): `{}`",
+                name,
+                expected.join(", ")
+            ),
+            Self::WrongLen { len, expected } => {
+                write!(f, "Wrong len: `{}`, expected `{}`", len, expected)
+            }
         }
     }
 }
@@ -54,26 +70,28 @@ impl std::error::Error for UnserializerError {}
 
 #[test]
 fn test() {
+    use crate::unserializers::string::StringUnserializer;
     use serde::Serialize;
 
     use crate::unserializers::input_file::InputFileUnserializer;
     use crate::InputFile;
     use std::borrow::Cow;
 
+    let value = String::from("test");
     assert_eq!(
-        String::from("test").serialize(StringUnserializer),
-        Ok(String::from("test"))
+        value.serialize(StringUnserializer),
+        Ok(value)
     );
 
     let value = InputFile::Url(String::from("url"));
     assert_eq!(
-        value.clone().serialize(InputFileUnserializer::NotMem),
+        value.serialize(InputFileUnserializer::NotMem),
         Ok(value)
     );
 
     let value = InputFile::FileId(String::from("file_id"));
     assert_eq!(
-        value.clone().serialize(InputFileUnserializer::NotMem),
+        value.serialize(InputFileUnserializer::NotMem),
         Ok(value)
     );
 
@@ -82,13 +100,13 @@ fn test() {
         data: Cow::Owned(vec![1, 2, 3]),
     };
     assert_eq!(
-        value.clone().serialize(InputFileUnserializer::memory()),
+        value.serialize(InputFileUnserializer::memory()),
         Ok(value)
     );
 
     let value = InputFile::File("a/b/c".into());
     assert_eq!(
-        value.clone().serialize(InputFileUnserializer::NotMem),
+        value.serialize(InputFileUnserializer::NotMem),
         Ok(value)
     );
 }
