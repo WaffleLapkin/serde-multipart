@@ -40,7 +40,13 @@ impl ser::Error for UnserializerError {
 
 impl Display for UnserializerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
+        match self {
+            Self::UnexpectedField { name, expected } => write!(f, "Unexpected field: `{}`, expected field(s): `{}`", name, expected.join(", ")),
+            Self::Custom(s) => write!(f, "Custom serde error: {}", s),
+            Self::UnsupportedType { ty, supported } => write!(f, "Unsupported type: `{}`, supported type(s): `{}`", ty, supported),
+            Self::UnexpectedVariant { name, expected } => write!(f, "Unexpected variant: `{}`, expected variants(s): `{}`", name, expected.join(", ")),
+            Self::WrongLen { len, expected } => write!(f, "Wrong len: `{}`, expected `{}`", len, expected),
+        }
     }
 }
 
